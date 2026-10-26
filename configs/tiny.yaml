@@ -1,0 +1,22 @@
+# Small randomly initialised model (Conformer encoder + tiny LLM).
+# Used by the test-suite and for checking a data pipeline end to end on CPU.
+model:
+  ctc_tokenizer: {type: char, path: data/vocab.txt}
+  encoder: {type: conformer, n_mels: 80, d_model: 144, n_layers: 4, n_heads: 4, conv_kernel: 15, adapter_layers: [1, -1]}
+  heads: {pred_dim: 128, joint_dim: 128}
+  adapter: {type: window_qformer, window_frames: 25, num_queries: 12, dim: 128, n_layers: 1, n_heads: 4}
+  llm:
+    type: tiny
+    tokenizer: data/llm_vocab.txt
+    d_model: 128
+    n_layers: 2
+    n_heads: 4
+    freeze: false
+    lora: {enabled: false}
+    prompt_template: "<bos>{audio}"
+train:
+  train_manifest: data/train.jsonl
+  output_dir: runs/tiny
+  batch_seconds: 120
+  num_workers: 0
+  precision: fp32

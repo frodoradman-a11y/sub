@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "subasr"
+version = "0.1.0"
+description = "Subtitle-oriented speech recognition: Gemma 4 audio encoder + CTC/TDT heads + Gemma 4 LLM (edit / autoregressive modes)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.4",
+    "transformers>=5.0",
+    "numpy",
+    "soundfile",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+spm = ["sentencepiece"]
+dev = ["pytest"]
+
+[project.scripts]
+subasr-train = "subasr.train:main"
+subasr-transcribe = "subasr.infer:main"
+subasr-eval = "subasr.evaluate:main"
+subasr-build-vocab = "subasr.tools.build_vocab:main"
+
+[tool.setuptools.packages.find]
+include = ["subasr*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: end-to-end training tests (a few minutes on CPU)"]

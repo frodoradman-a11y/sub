@@ -1,0 +1,71 @@
+# SubASR "Base": Gemma 4 E2B audio encoder + Gemma 4 E2B text model.
+# Train in three stages (see docs/guide.md):
+#   train.stage=encoder  ->  train.stage=align  ->  train.stage=joint
+model:
+  sample_rate: 16000
+  ctc_tokenizer:
+    type: char
+    path: data/vocab.txt          # python -m subasr.tools.build_vocab --manifest data/train.jsonl --output data/vocab.txt
+  encoder:
+    type: gemma4
+    pretrained: google/gemma-4-E2B-it
+    adapter_layers: [4, 8, -1]    # multi-layer features for the Q-Former
+    gradient_checkpointing: true
+  heads:
+    ctc: true
+    tdt: true
+    events: true
+    tdt_durations: [0, 1, 2, 3, 4]
+    pred_dim: 640
+    joint_dim: 640
+  adapter:
+    # gemma_native: Gemma's pretrained projector, 25 tokens/s, fastest to converge.
+    # window_qformer: 12 tokens/s (num_queries per 1 s window), cheaper LLM, needs the align stage.
+    type: window_qformer
+    window_frames: 25
+    num_queries: 12
+    dim: 1024
+    n_layers: 2
+    n_heads: 8
+  llm:
+    type: gemma4
+    pretrained: google/gemma-4-E2B-it
+    dtype: bfloat16
+    freeze: true
+    gradient_checkpointing: true
+    lora:
+      enabled: true
+      r: 64
+      alpha: 128
+      dropout: 0.05
+    prompt_template: chat
+    instruction: "Transcribe the speech in this audio verbatim. Language: {language}. Output only the transcript."
+    max_new_tokens: 256
+    nle_slots_per_token: 1
+    nle_extra_slots: 4
+
+train:
+  stage: encoder
+  train_manifest: data/train.jsonl
+  val_manifest: data/dev.jsonl
+  output_dir: runs/gemma4_e2b
+  max_steps: 100000
+  batch_seconds: 600
+  max_batch_size: 48
+  max_duration: 30
+  lr: 5.0e-4
+  encoder_lr: 5.0e-5
+  warmup_steps: 2000
+  precision: bf16
+  num_workers: 8
+  eval_every: 2000
+  save_every: 2000
+  loss: {ctc: 0.3, tdt: 1.0, events: 0.1, ar: 1.0, nle: 0.5}
+  augment:
+    enabled: true
+    music_manifest: data/music.jsonl
+    noise_manifest: data/noise.jsonl
+    music_prob: 0.3
+    music_snr_db: [-5, 20]
+    noise_prob: 0.2
+    speed_prob: 0.3
