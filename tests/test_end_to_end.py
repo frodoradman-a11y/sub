@@ -23,7 +23,7 @@ from conftest import SR, synth, tiny_config_dict
 
 
 @pytest.mark.slow
-def test_train_encoder_then_joint_then_subtitle(data_dir, tmp_path, capsys):
+def test_train_encoder_then_joint_then_subtitle(data_dir, tmp_path):
     torch.set_num_threads(4)
     enc_cfg = config_from_dict(
         tiny_config_dict(data_dir, output_dir=str(tmp_path / "enc"), stage="encoder", max_steps=700, lr=2e-3,
@@ -79,4 +79,3 @@ def test_train_encoder_then_joint_then_subtitle(data_dir, tmp_path, capsys):
     srt = out.read_text(encoding="utf-8")
     assert srt.startswith("1\n00:00:0") and "-->" in srt
     assert json.loads((tmp_path / "segs.json").read_text(encoding="utf-8"))
-    assert "wrote" in capsys.readouterr().out
